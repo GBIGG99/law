@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/react';
+
 import { SearchType, type SearchParams, DateRange, CaseStatus, type Bookmark, CaseType, Jurisdiction, type SearchResult, type DocumentAnalysisResult, type CrossReferenceResult } from './types';
 import { searchWebWithGemini, analyzeDocument, crossReferenceDocuments, generateNarrativeMap } from './services/geminiService';
 import { getCachedResult, setCachedResult } from './services/cacheService';
@@ -291,8 +290,8 @@ export default function App(): React.ReactNode {
           onGenerate={async (b, m, n) => await generateNarrativeMap(b, m, n)}
         />
       )}
-      <SpeedInsights />
-      <Analytics />
+
+      
     </div>
   );
 }

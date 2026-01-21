@@ -11,47 +11,48 @@ interface HeaderProps {
 
 export default function Header({ onAnalyzeDocumentClick, onCrossReferenceClick, onNarrativeMapperClick }: HeaderProps): React.ReactNode {
   return (
-    <div className="flex flex-col gap-12">
-      <div className="relative group">
-        <div className="etched-label text-[7px] text-white/40 mb-3 font-bold">OPERATIONAL_IDENTITY_MATRIX</div>
-        <h1 className="text-5xl font-black text-white uppercase tracking-tighter leading-none mb-3 gradient-text italic">
-          DENVER<br/>INTEL
+    <div className="flex flex-col gap-8">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold text-white tracking-tight">
+          Denver Court <span className="text-blue-500">Copilot</span>
         </h1>
-        <div className="h-0.5 w-16 bg-white shadow-[0_0_15px_rgba(255,255,255,0.4)]"></div>
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">Legal Intelligence OS v4.0</p>
       </div>
       
-      <div className="flex flex-col gap-3">
-        <div className="etched-label mb-2 opacity-30">Diagnostic Access</div>
+      <div className="space-y-3">
+        <label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Diagnostic Modules</label>
         
-        {[
-          { label: 'Audit Dossier', icon: DocumentIcon, action: onAnalyzeDocumentClick, code: '0x4F' },
-          { label: 'Cross Reference', icon: ScaleIcon, action: onCrossReferenceClick, code: '0x71' },
-          { label: 'Narrative Matrix', icon: BrainCircuitIcon, action: onNarrativeMapperClick, code: '0xA2' }
-        ].map((mod, i) => (
-          <button
-            key={i}
-            onClick={mod.action}
-            className="flex items-center justify-between p-5 bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all group"
-          >
-            <span className="flex items-center gap-4">
-              <mod.icon className="w-5 h-5 text-white/10 group-hover:text-white transition-colors" />
+        <div className="grid grid-cols-1 gap-2">
+          {[
+            { label: 'Audit Dossier', icon: DocumentIcon, action: onAnalyzeDocumentClick },
+            { label: 'Cross Reference', icon: ScaleIcon, action: onCrossReferenceClick },
+            { label: 'Narrative Matrix', icon: BrainCircuitIcon, action: onNarrativeMapperClick }
+          ].map((mod, i) => (
+            <button
+              key={i}
+              onClick={mod.action}
+              className="flex items-center gap-3 p-3 bg-slate-800/40 border border-slate-700 text-sm font-medium text-slate-300 rounded-lg hover:bg-slate-800 hover:text-white hover:border-slate-500 transition-all group"
+            >
+              <mod.icon className="w-4 h-4 text-slate-500 group-hover:text-blue-400 transition-colors" />
               {mod.label}
-            </span>
-            <span className="font-mono text-[8px] opacity-0 group-hover:opacity-100 transition-opacity">{mod.code}</span>
-          </button>
-        ))}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-8 space-y-4">
-        <div className="etched-label opacity-20 text-[7px]">Unit Telemetry</div>
+      <div className="pt-4 border-t border-slate-800 space-y-3">
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Node Telemetry</span>
+          <span className="text-[10px] font-bold text-emerald-500 uppercase">Secure</span>
+        </div>
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white/5 p-4 flex flex-col gap-1 border border-white/5 hover:bg-white/[0.08] transition-colors">
-            <span className="text-[7px] text-white/20 font-bold uppercase">Stability</span>
-            <span className="text-xs text-white font-black">ACTIVE</span>
+          <div className="bg-slate-800/30 p-3 rounded-lg border border-slate-800">
+            <span className="block text-[9px] text-slate-500 uppercase">Uptime</span>
+            <span className="text-xs font-bold text-slate-300">99.98%</span>
           </div>
-          <div className="bg-white/5 p-4 flex flex-col gap-1 border border-white/5 hover:bg-white/[0.08] transition-colors">
-            <span className="text-[7px] text-white/20 font-bold uppercase">Sector</span>
-            <span className="text-xs text-white font-black">DNVR_DCO</span>
+          <div className="bg-slate-800/30 p-3 rounded-lg border border-slate-800">
+            <span className="block text-[9px] text-slate-500 uppercase">Sector</span>
+            <span className="text-xs font-bold text-slate-300">DNVR_DCO</span>
           </div>
         </div>
       </div>

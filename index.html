@@ -1,311 +1,129 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DENVER_INTEL | PRECISION_LEGAL_OS</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;300;400;500;700;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
-
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <script type="importmap">
-  {
-    "imports": {
-      "react":                "https://esm.sh/react@19.0.0-rc-f994737d14-20240522",
-      "react-dom":            "https://esm.sh/react-dom@19.0.0-rc-f994737d14-20240522",
-      "react-dom/client":     "https://esm.sh/react-dom@19.0.0-rc-f994737d14-20240522/client",
-      "react/jsx-runtime":    "https://esm.sh/react@19.0.0-rc-f994737d14-20240522/jsx-runtime"
-    }
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#020617" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Denver Court Copilot | Professional Legal Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@100;300;500;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.9.0",
+    "react-markdown": "https://esm.sh/react-markdown@^9.0.1",
+    "remark-gfm": "https://esm.sh/remark-gfm@^4.0.0"
   }
-  </script>
-
-  <style>
-    :root {
-      --bg: #000000;
-      --panel: rgba(5, 15, 25, 0.65);
-      --border: rgba(0, 240, 255, 0.18);
-      --cyan: #00f0ff;
-      --cyan-glow: rgba(0, 240, 255, 0.7);
-      --green: #00ff9d;
-      --red: #ff004d;
-      --text: #e0f7ff;
-      --text-dim: #88ccff;
-      --etched: rgba(0, 240, 255, 0.35);
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'JetBrains Mono', monospace;
-      min-height: 100vh;
-      overflow-x: hidden;
-      background-image:
-        radial-gradient(circle at 15% 15%, rgba(0,240,255,0.03) 0%, transparent 25%),
-        radial-gradient(circle at 85% 85%, rgba(0,255,157,0.02) 0%, transparent 30%);
-      position: relative;
-    }
-
-    .noise {
-      position: fixed;
-      inset: 0;
-      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.035"/></svg>');
-      pointer-events: none;
-      z-index: 1;
-      mix-blend-mode: overlay;
-    }
-
-    .scanline {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(transparent 48%, rgba(0,255,200,0.06) 50%, transparent 52%);
-      background-size: 100% 5px;
-      animation: scan 12s linear infinite;
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    @keyframes scan {
-      0% { transform: translateY(-100%); }
-      100% { transform: translateY(200%); }
-    }
-
-    .header-bar {
-      background: rgba(0,0,0,0.8);
-      border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(8px);
-      padding: 0.5rem 2rem;
-      font-size: 0.75rem;
-      display: flex;
-      justify-content: space-between;
-      color: var(--cyan);
-      letter-spacing: 1px;
-    }
-
-    .content {
-      display: grid;
-      grid-template-columns: 380px 1fr;
-      gap: 1.5rem;
-      padding: 1.5rem 2.5rem;
-      height: calc(100vh - 44px);
-    }
-
-    .left-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      backdrop-filter: blur(12px);
-      padding: 1.25rem;
-      position: relative;
-    }
-
-    .panel-title {
-      position: absolute;
-      top: -0.75rem;
-      left: 1rem;
-      background: var(--bg);
-      padding: 0 0.75rem;
-      font-size: 0.75rem;
-      color: var(--etched);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    .big-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 3.8rem;
-      font-weight: 900;
-      letter-spacing: -2px;
-      color: var(--cyan);
-      text-shadow: 0 0 20px var(--cyan-glow);
-      margin: 1rem 0 1.5rem;
-      line-height: 0.9;
-    }
-
-    .menu-item {
-      background: rgba(0,240,255,0.08);
-      border: 1px solid rgba(0,240,255,0.25);
-      padding: 1rem 1.25rem;
-      margin-bottom: 0.75rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-weight: 500;
-    }
-
-    .menu-item:hover {
-      background: rgba(0,240,255,0.18);
-      border-color: var(--cyan);
-      box-shadow: 0 0 15px rgba(0,240,255,0.3);
-    }
-
-    .main-area {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    .status-bar {
-      background: rgba(0,0,0,0.7);
-      border: 1px solid var(--border);
-      padding: 0.75rem 1.25rem;
-      font-size: 0.85rem;
-      color: var(--text-dim);
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .execute-box {
-      background: rgba(0,0,0,0.85);
-      border: 2px solid var(--cyan);
-      padding: 3rem 2rem;
-      text-align: center;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 2rem;
-    }
-
-    .execute-btn {
-      background: rgba(0,240,255,0.12);
-      border: 2px solid var(--cyan);
-      color: var(--cyan);
-      font-size: 2.25rem;
-      font-weight: 900;
-      padding: 1.25rem 3.5rem;
-      letter-spacing: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-shadow: 0 0 15px var(--cyan-glow);
-      box-shadow: 0 0 30px rgba(0,240,255,0.35);
-    }
-
-    .execute-btn:hover {
-      background: rgba(0,240,255,0.28);
-      box-shadow: 0 0 60px rgba(0,240,255,0.6);
-      transform: scale(1.03);
-    }
-
-    .grid-4 {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-
-    .info-card {
-      background: rgba(0,240,255,0.06);
-      border: 1px solid rgba(0,240,255,0.3);
-      padding: 1rem;
-      text-align: center;
-      font-size: 0.9rem;
-    }
-
-    .label-small {
-      font-size: 0.65rem;
-      color: #88ccff88;
-      margin-bottom: 0.3rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-  </style>
-</head>
-<body>
-
-<div class="noise"></div>
-<div class="scanline"></div>
-
-<div class="header-bar">
-  <div>SYSTEM_STATE_V4.0 // ENCRYPTED_SIGNAL_STABLE</div>
-  <div>VECTOR_ID: 0X4A24A // UPTIME: 99.98%</div>
-</div>
-
-<div class="content">
-  <!-- LEFT COLUMN -->
-  <div class="left-panel">
-    <div class="panel">
-      <div class="panel-title">OPERATIONAL_IDENTITY_MATRIX</div>
-      <div class="big-title">DENVER<br/>INTEL</div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title">DIAGNOSTIC ACCESS</div>
-      <div class="menu-item"><span>📁</span> AUDIT DOSSIER</div>
-      <div class="menu-item"><span>🔗</span> CROSS REFERENCE</div>
-      <div class="menu-item"><span>📜</span> NARRATIVE MATRIX</div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title">UNIT STATUS</div>
-      <div style="margin: 0.5rem 0; color: var(--green); font-weight: bold;">STABILITY: ACTIVE</div>
-      <div style="color: var(--text-dim);">SECTOR: DNVR_DCO</div>
-    </div>
-  </div>
-
-  <!-- RIGHT COLUMN -->
-  <div class="main-area">
-    <div class="status-bar">
-      <div>NEURAL_INPUT_ACTIVE</div>
-      <div>PAYLOAD: 0 / 15000   LOGIC: GEMINI_V3_FLASH</div>
-    </div>
-
-    <div class="panel" style="flex:1; display:flex; flex-direction:column;">
-      <div class="panel-title">INPUT_MISSION_OBJECTIVE...</div>
-
-      <div class="execute-box">
-        <div style="font-size: 3.5rem; font-weight:900; letter-spacing:8px; color:var(--cyan); text-shadow:0 0 30px var(--cyan-glow);">
-          [EXECUTE_SCAN]
-        </div>
-
-        <button class="execute-btn">[EXECUTE_SCAN]</button>
-
-        <div style="margin-top:2rem; color:var(--text-dim); font-size:0.9rem;">
-          CLEAR_INPUT ◯
-        </div>
-      </div>
-
-      <div class="grid-4">
-        <div class="info-card">
-          <div class="label-small">TARGET_ENTITY</div>
-          NAME / CASE_ID
-        </div>
-        <div class="info-card">
-          <div class="label-small">TEMPORAL_WINDOW</div>
-          UNRESTRICTED
-        </div>
-        <div class="info-card">
-          <div class="label-small">SCHEMA_TYPE</div>
-          ALL_OBJECTS
-        </div>
-        <div class="info-card">
-          <div class="label-small">OPERATIONAL_SECTOR</div>
-          GLOBAL_DENVER
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script type="module">
-  // Future React/React Three Fiber/WebGL enhancements can go here
-  console.log("DENVER_INTEL — tactical interface nominal");
+}
 </script>
-</body>
+<style>
+  :root {
+    --bg-slate-950: #020617;
+    --bg-slate-900: #0f172a;
+    --bg-slate-800: #1e293b;
+    --accent-blue: #3b82f6;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  body {
+    background-color: var(--bg-slate-950);
+    color: #f1f5f9;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    overflow-x: hidden;
+    position: relative;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.02) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  .tech-plate {
+    background: var(--bg-slate-900);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  .glass-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.75rem;
+  }
+
+  .etched-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { 
+    background: rgba(255,255,255,0.1); 
+    border-radius: 10px;
+  }
+
+  .custom-transition {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Optimized animations for mobile performance */
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .entry-animation {
+    animation: slideUp 0.4s cubic-bezier(0, 0, 0.2, 1) forwards;
+  }
+
+  /* Hide scrollbars during transitions */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* PDF Export Specific Overrides */
+  .pdf-export-mode {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 20mm 25mm !important;
+    width: 210mm !important; 
+    max-width: none !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    position: relative !important;
+    transform: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  @media print {
+    body { background: white !important; color: black !important; }
+    #root { padding: 0 !important; }
+  }
+</style>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>

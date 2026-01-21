@@ -183,10 +183,14 @@ export default function DocumentAnalysisModal({ onClose, onAnalyze, result, isLo
                                 {onMapNarrative && (
                                     <button 
                                         onClick={onMapNarrative}
-                                        className="lg:w-64 bg-[#1a1a1a] border border-[#b5892f]/30 hover:border-[#b5892f] p-10 flex flex-col items-center justify-center gap-6 transition-all group shrink-0"
+                                        className="lg:w-64 bg-[#1a1a1a] border border-[#b5892f]/30 hover:border-[#b5892f] p-10 flex flex-col items-center justify-center gap-6 transition-all group shrink-0 shadow-xl"
                                     >
-                                        <BrainCircuitIcon className="w-16 h-16 text-[#b5892f] group-hover:scale-110 transition-transform" />
-                                        <span className="text-xs font-black uppercase tracking-widest text-[#b5892f] text-center">Narrative Matrix Visualization</span>
+                                        <div className="relative">
+                                          <BrainCircuitIcon className="w-16 h-16 text-[#b5892f] group-hover:scale-110 transition-transform" />
+                                          <div className="absolute -top-2 -right-2 bg-red-500 w-4 h-4 rounded-full animate-ping"></div>
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-[#b5892f] text-center">Narrative Matrix Visualization</span>
+                                        <span className="text-[8px] font-black uppercase tracking-widest text-[#6e501a] group-hover:text-red-500 transition-colors">Detected 0x42 Discrepancies</span>
                                     </button>
                                 )}
                             </div>

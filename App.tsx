@@ -1,7 +1,4 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/react';
-
 import { SearchType, type SearchParams, DateRange, CaseStatus, type Bookmark, CaseType, Jurisdiction, type SearchResult, type DocumentAnalysisResult, type CrossReferenceResult } from './types';
 import { searchWebWithGemini, analyzeDocument, crossReferenceDocuments, generateNarrativeMap } from './services/geminiService';
 import { getCachedResult, setCachedResult } from './services/cacheService';
@@ -18,8 +15,15 @@ import JudgeDetailModal from './components/JudgeDetailModal';
 import DocumentAnalysisModal from './components/DocumentAnalysisModal';
 import CrossReferenceModal from './components/CrossReferenceModal';
 import NarrativeMapper from './components/NarrativeMapper';
+import BrainCircuitIcon from './components/icons/BrainCircuitIcon';
+import BookmarkIcon from './components/icons/BookmarkIcon';
+import HistoryIcon from './components/icons/HistoryIcon';
+import GavelIcon from './components/icons/GavelIcon';
+
+type AppTab = 'copilot' | 'audit' | 'vault';
 
 export default function App(): React.ReactNode {
+  const [activeTab, setActiveTab] = useState<AppTab>('copilot');
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: '',
     searchType: SearchType.SEARCH,
@@ -139,6 +143,7 @@ export default function App(): React.ReactNode {
         setSearchParams(bookmark.params);
         setOutput({ ...bookmark.result, isSummaryStreaming: false });
         setCurrentSearchParamsForResults(bookmark.params);
+        setActiveTab('copilot');
     } else if (bookmark.type === 'document_analysis') {
         setDocumentAnalysisResult(bookmark.result);
         setShowDocumentAnalysisModal(true);
@@ -156,15 +161,15 @@ export default function App(): React.ReactNode {
   };
 
   return (
-    <div className="min-h-screen pb-12 flex flex-col bg-[#0a0a0a]">
+    <div className="min-h-screen pb-24 lg:pb-12 flex flex-col bg-[#0a0a0a]">
       <Banner />
       
-      <div className="flex-grow flex flex-col lg:flex-row max-w-[1800px] mx-auto w-full px-4 lg:px-12 gap-12 mt-12">
+      <div className="flex-grow flex flex-col lg:flex-row max-w-[1800px] mx-auto w-full px-4 lg:px-12 gap-8 lg:gap-12 mt-6 lg:mt-12">
         
-        {/* Sidebar */}
-        <aside className="lg:w-96 flex flex-col gap-12 order-2 lg:order-1">
-          <div className="tech-plate p-10 flex flex-col gap-10">
-            <div className="calibration-marks mark-tl mark-bl"></div>
+        {/* Desktop Sidebar / Mobile "Audit" View */}
+        <aside className={`lg:w-96 flex flex-col gap-12 ${activeTab === 'audit' ? 'flex' : 'hidden lg:flex'}`}>
+          <div className="tech-plate p-6 lg:p-10 flex flex-col gap-10">
+            <div className="calibration-marks mark-tl mark-bl hidden lg:block"></div>
             <Header 
               onAnalyzeDocumentClick={() => { setAuditFileData(null); setShowDocumentAnalysisModal(true); }} 
               onCrossReferenceClick={() => setShowCrossRefModal(true)} 
@@ -172,17 +177,19 @@ export default function App(): React.ReactNode {
             />
           </div>
 
-          <Bookmarks 
-            bookmarks={bookmarks}
-            onView={handleViewBookmark}
-            onDelete={(key) => { removeBookmark(key); setBookmarks(getBookmarks()); }}
-          />
+          <div className="hidden lg:flex flex-col gap-12">
+            <Bookmarks 
+              bookmarks={bookmarks}
+              onView={handleViewBookmark}
+              onDelete={(key) => { removeBookmark(key); setBookmarks(getBookmarks()); }}
+            />
+          </div>
         </aside>
 
-        {/* Main Console */}
-        <main className="flex-grow flex flex-col gap-12 order-1 lg:order-2">
+        {/* Main Console / Mobile "Copilot" View */}
+        <main className={`flex-grow flex flex-col gap-8 lg:gap-12 ${activeTab === 'copilot' ? 'flex' : 'hidden lg:flex'}`}>
           <div className="tech-plate overflow-hidden">
-            <div className="calibration-marks mark-tl mark-tr mark-bl mark-br"></div>
+            <div className="calibration-marks mark-tl mark-tr mark-bl mark-br hidden lg:block"></div>
             <SearchForm
               params={searchParams}
               setParams={setSearchParams}
@@ -191,16 +198,17 @@ export default function App(): React.ReactNode {
               onClear={() => { setOutput(null); setSearchParams({...searchParams, query: ''}); }}
               onSelectHistory={(p) => { setSearchParams(p); executeSearch(p); }}
               onSave={() => currentSearchParamsForResults && output && handleSaveResult(currentSearchParamsForResults, output)}
+              onImportPDF={() => { setAuditFileData(null); setShowDocumentAnalysisModal(true); }}
               canSave={!!output && !!currentSearchParamsForResults}
             />
             
-            <div className="px-10 pb-10 pt-6">
+            <div className="px-6 lg:px-10 pb-6 lg:pb-10 pt-4 lg:pt-6">
               <Examples onSelectExample={(ex) => setSearchParams({...searchParams, ...ex})} />
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-950/20 border border-red-900/40 p-6 etched-label text-red-500 flex items-center gap-4 animate-pulse">
+            <div className="bg-red-950/20 border border-red-900/40 p-4 lg:p-6 etched-label text-red-500 flex items-center gap-4 animate-pulse mx-2 lg:mx-0">
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
               SYSTEM_FAULT: {error}
             </div>
@@ -218,11 +226,51 @@ export default function App(): React.ReactNode {
             onJudgeClick={(name) => { setSelectedJudgeName(name); setShowJudgeModal(true); }}
           />
         </main>
+
+        {/* Mobile "Vault" View */}
+        <section className={`flex-grow lg:hidden ${activeTab === 'vault' ? 'flex' : 'hidden'} flex-col gap-6`}>
+           <div className="tech-plate p-6">
+              <Bookmarks 
+                bookmarks={bookmarks}
+                onView={handleViewBookmark}
+                onDelete={(key) => { removeBookmark(key); setBookmarks(getBookmarks()); }}
+              />
+           </div>
+        </section>
       </div>
 
-      <footer className="mt-20 text-center etched-label opacity-20 tracking-[0.6em]">
+      <footer className="mt-20 mb-8 lg:mb-0 text-center etched-label opacity-20 tracking-[0.4em] lg:tracking-[0.6em] px-4 text-[8px] lg:text-[10px]">
         PRECISION_LEGAL_ANALYSIS_NODE // GEMINI_v3_CORE
       </footer>
+
+      {/* Mobile Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 lg:hidden bg-[#0a0a0a]/90 backdrop-blur-2xl border-t border-white/5 z-[60] pb-safe">
+        <div className="flex justify-around items-center h-20 px-4">
+          <button 
+            onClick={() => setActiveTab('copilot')}
+            className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'copilot' ? 'text-blue-500' : 'text-slate-500'}`}
+          >
+            <BrainCircuitIcon className="w-6 h-6" />
+            <span className="text-[9px] font-black uppercase tracking-widest">Copilot</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('audit')}
+            className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'audit' ? 'text-blue-500' : 'text-slate-500'}`}
+          >
+            <HistoryIcon className="w-6 h-6" />
+            <span className="text-[9px] font-black uppercase tracking-widest">Audit</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('vault')}
+            className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'vault' ? 'text-blue-500' : 'text-slate-500'}`}
+          >
+            <BookmarkIcon className="w-6 h-6" />
+            <span className="text-[9px] font-black uppercase tracking-widest">Vault</span>
+          </button>
+        </div>
+      </nav>
 
       {showJudgeModal && selectedJudgeName && (
         <JudgeDetailModal judgeName={selectedJudgeName} onClose={() => setShowJudgeModal(false)} />
@@ -292,10 +340,6 @@ export default function App(): React.ReactNode {
           onGenerate={async (b, m, n) => await generateNarrativeMap(b, m, n)}
         />
       )}
-
-      
     </div>
-    <Analytics />
-    <SpeedInsights />
   );
 }

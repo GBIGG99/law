@@ -146,6 +146,27 @@ export interface AdversarialStrategy {
   hiddenRisks: string[];
 }
 
+export interface ThreatNode {
+  label: string;
+  impact: number; // 1-10
+  probability: number; // 1-10
+}
+
+export interface StrategicFactors {
+  evidence: number; // 1-10
+  procedural: number; // 1-10
+  jurisdictional: number; // 1-10
+  resource: number; // 1-10
+  opponentVulnerability: number; // 1-10
+}
+
+export interface StrategicTelemetry {
+  readinessScore: number; // 0-100
+  threatMatrix: ThreatNode[];
+  complexityIndex: number; // 1-10
+  strategicFactors: StrategicFactors;
+}
+
 export interface SearchResult {
   summary: string;
   sources: Source[];
@@ -154,12 +175,14 @@ export interface SearchResult {
   timelineEvents?: TimelineEvent[];
   identifiedJudges?: JudgeSummary[];
   adversarialStrategy?: AdversarialStrategy;
+  telemetry?: StrategicTelemetry;
   isSummaryStreaming: boolean;
   isFollowUpQuestionsLoading: boolean;
   isRelatedQueriesLoading: boolean;
   isTimelineLoading: boolean;
   isIdentifiedJudgesLoading: boolean;
   isAdversarialLoading?: boolean;
+  isTelemetryLoading?: boolean;
 }
 
 export type PartialSearchResult = Partial<SearchResult>;

@@ -68,9 +68,10 @@ export default function TimelineChart({ events, isLoading }: TimelineChartProps)
 
     return (
         <div className="relative">
-            <div className="flex items-center gap-10 mb-20">
-                <div className="p-8 bg-white text-black shadow-2xl border border-white/20">
-                    <CalendarIcon className="w-12 h-12" />
+            <div className="flex items-center gap-10 mb-20 page-break-avoid">
+                <div className="p-8 bg-white text-black shadow-2xl border border-white/20 timeline-node">
+                    <CalendarIcon className="w-12 h-12 no-print" />
+                    <span className="hidden pdf-only text-xs font-black">CHRONOLOGY</span>
                 </div>
                 <div>
                     <h4 className="text-5xl font-black text-white uppercase italic tracking-tighter leading-none">Temporal<br/>Vector Map</h4>
@@ -84,19 +85,19 @@ export default function TimelineChart({ events, isLoading }: TimelineChartProps)
                     const trackClasses = getTrackClasses(event.narrativeTrack);
                     
                     return (
-                        <div key={index} className="relative group">
-                            <div className="absolute -left-[101px] top-0 w-20 h-20 flex items-center justify-center bg-[#050505] border border-white/10 text-white font-mono text-2xl font-black z-10 group-hover:border-white transition-all shadow-2xl">
+                        <div key={index} className="relative group page-break-avoid">
+                            <div className="absolute -left-[101px] top-0 w-20 h-20 flex items-center justify-center bg-[#050505] border border-white/10 text-white font-mono text-2xl font-black z-10 group-hover:border-white transition-all shadow-2xl timeline-node">
                                 {index + 1}
                             </div>
                             
                             <div className="flex items-center justify-between gap-10 mb-8 max-w-4xl">
                                 <div className="flex items-center gap-10">
-                                    <span className="font-mono font-black text-sm text-white bg-white/5 border border-white/10 px-8 py-3 tracking-widest">
+                                    <span className="font-mono font-black text-sm text-white bg-white/5 border border-white/10 px-8 py-3 tracking-widest timeline-node">
                                         {event.date}
                                     </span>
                                     <div className="flex items-center gap-5">
-                                        {styles.icon}
-                                        <span className="etched-label text-[10px] opacity-20 group-hover:opacity-100 transition-opacity font-black">
+                                        <div className="no-print">{styles.icon}</div>
+                                        <span className="etched-label text-[10px] opacity-20 group-hover:opacity-100 transition-opacity font-black section-index-label">
                                             {styles.tag}
                                         </span>
                                     </div>
@@ -104,12 +105,12 @@ export default function TimelineChart({ events, isLoading }: TimelineChartProps)
                                 {getTrackLabel(event.narrativeTrack)}
                             </div>
 
-                            <div className={`p-12 border group-hover:bg-white/[0.08] transition-all border-l-[12px] shadow-inner ${trackClasses} ${styles.accent}`}>
+                            <div className={`p-12 border group-hover:bg-white/[0.08] transition-all border-l-[12px] shadow-inner ${trackClasses} ${styles.accent} ${event.narrativeTrack === 'prosecution' ? 'adversarial-move' : event.narrativeTrack === 'defense' ? 'defense-counter' : ''}`}>
                                 <p className="text-3xl text-white font-extralight italic leading-relaxed tracking-tight max-w-4xl">
                                     "{event.description}"
                                 </p>
                                 {event.citation && (
-                                    <p className="mt-10 text-[9px] text-white/20 font-mono uppercase tracking-[0.5em] border-t border-white/5 pt-8 font-black">
+                                    <p className="mt-10 text-[9px] text-white/20 font-mono uppercase tracking-[0.5em] border-t border-white/5 pt-8 font-black section-index-label">
                                         REF_BLOCK_ID: <span className="text-white/50">{event.citation}</span>
                                     </p>
                                 )}

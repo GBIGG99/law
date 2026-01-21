@@ -1,7 +1,7 @@
 
 // Implemented missing service functions and updated models to follow latest guidelines.
 import { GoogleGenAI, GenerateContentResponse, Type, HarmCategory, HarmBlockThreshold, Modality } from "@google/genai";
-import { type SearchParams, type SearchResult, type Source, SearchType, DateRange, PartialSearchResult, TimelineEvent, JudgeSummary, JudgeDetail, DocumentAnalysisResult, CaseStatus, CaseType, Jurisdiction, CrossReferenceResult, NarrativeMapResult, AdversarialStrategy, NarrativeNode, NarrativeLink } from '../types';
+import { type SearchParams, type SearchResult, type Source, SearchType, DateRange, PartialSearchResult, TimelineEvent, JudgeSummary, JudgeDetail, DocumentAnalysisResult, CaseStatus, CaseType, Jurisdiction, CrossReferenceResult, NarrativeMapResult, AdversarialStrategy, NarrativeNode, NarrativeLink, StrategicTelemetry } from '../types';
 
 if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable is not set.");
@@ -34,7 +34,7 @@ const safeParseJSON = <T>(text: string | undefined): T | null => {
 };
 
 const buildPrompt = (params: SearchParams): string => {
-  const { query, listCount, partyName, caseNumber, jurisdiction } = params;
+  const { query, partyName, caseNumber, jurisdiction } = params;
   
   let missionStatement = `You are the "Denver Court Copilot" — a world-class legal strategist and Chess Master.
 
@@ -53,24 +53,78 @@ Analyze the following strategic query: "${query}".`;
   if (caseNumber) missionStatement += `\nSpecific case target: ${caseNumber}.`;
   if (jurisdiction && jurisdiction !== 'all') missionStatement += `\nLimiting scope to: ${jurisdiction}.`;
 
-  let prompt = `${missionStatement}
+  return missionStatement + `\n\nHeader: Tactical Intelligence Summary\nSection: The Adversarial Landscape\nSection: Pro-Se Tactical Advantages\nSection: Denver Procedural Checklist`;
+};
 
-  ORGANIZATION REQUIREMENTS:
-  - Header: Tactical Intelligence Summary
-  - Section: The Adversarial Landscape (Prosecution Moves)
-  - Section: Pro-Se Tactical Advantages (Defense Moves)
-  - Section: Denver Procedural Checklist
-  
-  Use Bold for high-impact legal concepts.`;
+const generateStrategicTelemetry = async (query: string, summary: string): Promise<StrategicTelemetry> => {
+    const prompt = `Perform a high-speed neural audit on the legal query: "${query}". 
+    Analyze case complexity, threat vectors, pro-se readiness, and strategic factors based on the following context.
+    Context: ${summary.substring(0, 3000)}
 
-  if (listCount && listCount > 0) prompt += ` Detail exactly ${listCount} high-leverage strategic points.`;
+    Output JSON with:
+    - 'readinessScore' (0-100)
+    - 'complexityIndex' (1-10)
+    - 'strategicFactors' (Object with 'evidence', 'procedural', 'jurisdictional', 'resource', 'opponentVulnerability' as numbers 1-10)
+    - 'threatMatrix' (array of 5 items with 'label', 'impact' 1-10, 'probability' 1-10).`;
 
-  return prompt;
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        readinessScore: { type: Type.NUMBER },
+                        complexityIndex: { type: Type.NUMBER },
+                        strategicFactors: {
+                            type: Type.OBJECT,
+                            properties: {
+                                evidence: { type: Type.NUMBER },
+                                procedural: { type: Type.NUMBER },
+                                jurisdictional: { type: Type.NUMBER },
+                                resource: { type: Type.NUMBER },
+                                opponentVulnerability: { type: Type.NUMBER }
+                            },
+                            required: ['evidence', 'procedural', 'jurisdictional', 'resource', 'opponentVulnerability']
+                        },
+                        threatMatrix: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    label: { type: Type.STRING },
+                                    impact: { type: Type.NUMBER },
+                                    probability: { type: Type.NUMBER }
+                                },
+                                required: ['label', 'impact', 'probability']
+                            }
+                        }
+                    },
+                    required: ['readinessScore', 'complexityIndex', 'threatMatrix', 'strategicFactors']
+                }
+            }
+        });
+        return safeParseJSON<StrategicTelemetry>(response.text) || { 
+          readinessScore: 50, 
+          complexityIndex: 5, 
+          threatMatrix: [],
+          strategicFactors: { evidence: 5, procedural: 5, jurisdictional: 5, resource: 5, opponentVulnerability: 5 }
+        };
+    } catch {
+        return { 
+          readinessScore: 50, 
+          complexityIndex: 5, 
+          threatMatrix: [],
+          strategicFactors: { evidence: 5, procedural: 5, jurisdictional: 5, resource: 5, opponentVulnerability: 5 }
+        };
+    }
 };
 
 const generateAdversarialStrategy = async (query: string, summary: string): Promise<AdversarialStrategy> => {
-    const prompt = `Legendary Denver defense attorney mode. 
-    Predict opponent's next 3 moves and countermeasures for: "${query}".
+    const prompt = `Denver defense attorney strategic mode. 
+    Predict opponent's next moves and countermeasures for: "${query}".
     Context: ${summary.substring(0, 4000)}
 
     Output JSON with 'prosecutorMoves', 'defenseCounters', and 'hiddenRisks'. Each array should have 3 items.`;
@@ -163,8 +217,72 @@ const extractTimelineEvents = async (summary: string): Promise<TimelineEvent[]> 
   } catch { return []; }
 };
 
+const extractJudges = async (summary: string): Promise<JudgeSummary[]> => {
+    const prompt = `Identify judicial officers mentioned. Return JSON { "judges": [{ "name": "" }] }. Context: ${summary.substring(0, 2000)}`;
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: { type: Type.OBJECT, properties: { judges: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING } } } } } }
+            }
+        });
+        const parsed = safeParseJSON<{ judges: JudgeSummary[] }>(response.text);
+        return parsed?.judges || [];
+    } catch { return []; }
+};
+
+export const searchWebWithGemini = async (params: SearchParams, onPartial: (partial: PartialSearchResult) => void): Promise<SearchResult> => {
+    const prompt = buildPrompt(params);
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: prompt,
+        config: {
+            tools: [{ googleSearch: {} }],
+            thinkingConfig: { thinkingBudget: 32768 }
+        }
+    });
+
+    const summary = response.text || "No intelligence synthesized.";
+    const sources: Source[] = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => ({
+        uri: chunk.web?.uri || '',
+        title: chunk.web?.title || 'Legal Reference'
+    })).filter((s: any) => s.uri) || [];
+
+    onPartial({ summary, sources });
+
+    // Parallel background analysis for HUD visuals
+    const [telemetry, adversarial, timeline, judges, followUps, related] = await Promise.all([
+        generateStrategicTelemetry(params.query, summary),
+        generateAdversarialStrategy(params.query, summary),
+        extractTimelineEvents(summary),
+        extractJudges(summary),
+        generateFollowUpQuestions(params.query, summary),
+        generateRelatedQueries(params.query)
+    ]);
+
+    return {
+        summary,
+        sources,
+        telemetry,
+        adversarialStrategy: adversarial,
+        timelineEvents: timeline,
+        identifiedJudges: judges,
+        followUpQuestions: followUps,
+        relatedQueries: related,
+        isSummaryStreaming: false,
+        isFollowUpQuestionsLoading: false,
+        isRelatedQueriesLoading: false,
+        isTimelineLoading: false,
+        isIdentifiedJudgesLoading: false,
+        isAdversarialLoading: false,
+        isTelemetryLoading: false
+    };
+};
+
 export const getJudgeDetails = async (judgeName: string): Promise<JudgeDetail> => {
-  const prompt = `Strategic audit on Denver judge "${judgeName}". Focus on readability and clear sections. Assess the favorability and predictability of their ruling patterns. For each pattern, assign a 'riskLevel' (low, medium, or high) representing the danger to a typical defense case. Return JSON.`;
+  const prompt = `Strategic audit on Denver judge "${judgeName}". Focus on predictability and ruling patterns. assigned a 'riskLevel' (low, medium, or high). Return JSON.`;
   try {
       const response = await ai.models.generateContent({
           model: 'gemini-3-pro-preview', 
@@ -172,57 +290,11 @@ export const getJudgeDetails = async (judgeName: string): Promise<JudgeDetail> =
           config: {
               tools: [{googleSearch: {}}], 
               thinkingConfig: { thinkingBudget: 32768 },
-              responseMimeType: "application/json",
-              responseSchema: {
-                  type: Type.OBJECT,
-                  properties: {
-                      name: { type: Type.STRING },
-                      tendencies: { type: Type.STRING },
-                      notableCases: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { caseName: { type: Type.STRING }, outcome: { type: Type.STRING }, date: { type: Type.STRING } } } },
-                      statistics: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { totalCases: { type: Type.NUMBER }, convictionRate: { type: Type.STRING }, averageSentence: { type: Type.STRING }, caseLoad: { type: Type.STRING } } } },
-                      rulingPatternsByCaseType: { 
-                        type: Type.ARRAY, 
-                        items: { 
-                          type: Type.OBJECT, 
-                          properties: { 
-                            caseType: { type: Type.STRING }, 
-                            pattern: { type: Type.STRING }, 
-                            percentage: { type: Type.STRING },
-                            riskLevel: { type: Type.STRING, enum: ['low', 'medium', 'high'] }
-                          } 
-                        } 
-                      },
-                      averageTimeToDisposition: { type: Type.STRING },
-                      sentencingData: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { offense: { type: Type.STRING }, averageSentence: { type: Type.STRING } } } },
-                      strategicInsights: { type: Type.STRING },
-                  }
-              }
+              responseMimeType: "application/json"
           },
       });
       return safeParseJSON<JudgeDetail>(response.text) as JudgeDetail;
   } catch (error) { throw new Error(`Dossier retrieve failed for Judge ${judgeName}.`); }
-};
-
-export const generateSpeech = async (text: string): Promise<string> => {
-  // Use a strictly focused prompt to avoid backend filtering or logic errors
-  const speechPrompt = `Read the following briefing text clearly and authoritatively: ${text.substring(0, 1000)}`;
-  
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text: speechPrompt }] }],
-    config: {
-      responseModalities: [Modality.AUDIO],
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: 'Kore' },
-        },
-      },
-    },
-  });
-  
-  const base64Audio = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-  if (!base64Audio) throw new Error("TTS payload extraction failure.");
-  return base64Audio;
 };
 
 export const analyzeDocument = async (base64Content: string, mimeType: string, fileName: string): Promise<DocumentAnalysisResult> => {
@@ -232,33 +304,13 @@ export const analyzeDocument = async (base64Content: string, mimeType: string, f
             {
                 parts: [
                     { inlineData: { data: base64Content, mimeType } },
-                    { text: `Deep strategic audit of "${fileName}". Focus on organized counters and actionable steps.` }
+                    { text: `Deep strategic audit of "${fileName}".` }
                 ]
             }
         ],
         config: {
             thinkingConfig: { thinkingBudget: 32768 },
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    fileName: { type: Type.STRING },
-                    strategicSummary: { type: Type.STRING },
-                    keyArguments: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    identifiedEntities: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                type: { type: Type.STRING, enum: ['judge', 'party', 'date', 'case_number', 'other'] },
-                                value: { type: Type.STRING }
-                            }
-                        }
-                    },
-                    actionableInsights: { type: Type.ARRAY, items: { type: Type.STRING } }
-                },
-                required: ['fileName', 'strategicSummary', 'keyArguments', 'identifiedEntities', 'actionableInsights']
-            }
+            responseMimeType: "application/json"
         }
     });
     return safeParseJSON<DocumentAnalysisResult>(response.text) || { 
@@ -269,10 +321,7 @@ export const analyzeDocument = async (base64Content: string, mimeType: string, f
 export const askDocumentQuestion = async (analysis: DocumentAnalysisResult, question: string): Promise<string> => {
     const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Context: ${JSON.stringify(analysis)}\n\nQuestion: ${question}`,
-        config: {
-            systemInstruction: "You are Denver Court Copilot. Provide clear, large-print-ready answers."
-        }
+        contents: `Context: ${JSON.stringify(analysis)}\n\nQuestion: ${question}`
     });
     return response.text || "Connection unstable.";
 };
@@ -288,36 +337,13 @@ export const crossReferenceDocuments = async (
                 parts: [
                     { inlineData: { data: fileABase64, mimeType: fileAMime } },
                     { inlineData: { data: fileBBase64, mimeType: fileBMime } },
-                    { text: `Cross-reference "${fileAName}" vs "${fileBName}". Return JSON.` }
+                    { text: `Cross-reference "${fileAName}" vs "${fileBName}".` }
                 ]
             }
         ],
         config: {
             thinkingConfig: { thinkingBudget: 32768 },
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    fileAName: { type: Type.STRING },
-                    fileBName: { type: Type.STRING },
-                    overallCredibilityScore: { type: Type.NUMBER },
-                    summaryOfDiscrepancies: { type: Type.STRING },
-                    contradictions: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                topic: { type: Type.STRING },
-                                severity: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
-                                sourceAClaim: { type: Type.STRING },
-                                sourceBClaim: { type: Type.STRING },
-                                analysis: { type: Type.STRING }
-                            }
-                        }
-                    }
-                },
-                required: ['fileAName', 'fileBName', 'overallCredibilityScore', 'summaryOfDiscrepancies', 'contradictions']
-            }
+            responseMimeType: "application/json"
         }
     });
     return safeParseJSON<CrossReferenceResult>(response.text) || { 
@@ -326,114 +352,90 @@ export const crossReferenceDocuments = async (
 };
 
 export const generateNarrativeMap = async (base64Content: string, mimeType: string, fileName: string): Promise<NarrativeMapResult> => {
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: [
-            {
-                parts: [
-                    { inlineData: { data: base64Content, mimeType } },
-                    { text: `Map narrative track for "${fileName}". Identify nodes, links, and dual-track timeline. Return JSON.` }
-                ]
+    const prompt = `Perform a Deep Narrative Reconstruction and Strategic Correlation on the document: "${fileName}".
+    
+    YOUR MISSION:
+    Analyze the discovery material and reconstruct the chronological story of the case. 
+    Identify all key entities (People, Locations, Assets, Events). 
+    
+    SPECIFIC MANDATE: 
+    1. Look for EXCULPATORY EVIDENCE (Brady material) — facts that favor the defense or impeach prosecution witnesses.
+    2. Flag CONTRADICTIONS — instances where witnesses or documents conflict on material facts.
+    
+    REQUIRED DATA STRUCTURE:
+    - nodes: Array of entities with 'type' (person, location, asset, institution, event), 'label', 'description', and 'bradyFlag' (text if exculpatory, else null).
+    - links: Relationships between nodes with 'label' and 'type' (explicit, inferred, contradiction).
+    - timeline: Key events extracted chronologically with 'narrativeTrack' (prosecution, defense, undisputed).
+    - strategicAssessment: A 2-3 sentence high-level analysis of case strength.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { data: base64Content, mimeType } },
+                        { text: prompt }
+                    ]
+                }
+            ],
+            config: {
+                thinkingConfig: { thinkingBudget: 32768 },
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        nodes: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    id: { type: Type.STRING },
+                                    label: { type: Type.STRING },
+                                    type: { type: Type.STRING, enum: ['person', 'location', 'asset', 'institution', 'event'] },
+                                    description: { type: Type.STRING },
+                                    bradyFlag: { type: Type.STRING, nullable: true },
+                                    evidenceTags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                    sourceCitation: { type: Type.STRING }
+                                },
+                                required: ['id', 'label', 'type']
+                            }
+                        },
+                        links: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    source: { type: Type.STRING },
+                                    target: { type: Type.STRING },
+                                    label: { type: Type.STRING },
+                                    type: { type: Type.STRING, enum: ['explicit', 'inferred', 'contradiction'] }
+                                },
+                                required: ['source', 'target', 'label', 'type']
+                            }
+                        },
+                        timeline: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    date: { type: Type.STRING },
+                                    description: { type: Type.STRING },
+                                    type: { type: Type.STRING, enum: ['filing', 'motion', 'court_date', 'ruling', 'other'] },
+                                    narrativeTrack: { type: Type.STRING, enum: ['prosecution', 'defense', 'undisputed'] }
+                                },
+                                required: ['date', 'description', 'type']
+                            }
+                        },
+                        strategicAssessment: { type: Type.STRING }
+                    },
+                    required: ['nodes', 'links', 'timeline', 'strategicAssessment']
+                }
             }
-        ],
-        config: {
-            thinkingConfig: { thinkingBudget: 32768 },
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    nodes: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                id: { type: Type.STRING },
-                                label: { type: Type.STRING },
-                                type: { type: Type.STRING, enum: ['person', 'location', 'asset', 'institution', 'event'] },
-                                description: { type: Type.STRING },
-                                bradyFlag: { type: Type.STRING },
-                                evidenceTags: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                sourceCitation: { type: Type.STRING }
-                            },
-                            required: ['id', 'label', 'type']
-                        }
-                    },
-                    links: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                source: { type: Type.STRING },
-                                target: { type: Type.STRING },
-                                label: { type: Type.STRING },
-                                type: { type: Type.STRING, enum: ['explicit', 'inferred', 'contradiction'] },
-                                evidence: { type: Type.STRING }
-                            },
-                            required: ['source', 'target', 'label', 'type']
-                        }
-                    },
-                    timeline: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                date: { type: Type.STRING },
-                                description: { type: Type.STRING },
-                                type: { type: Type.STRING, enum: ['filing', 'motion', 'court_date', 'ruling', 'other'] },
-                                narrativeTrack: { type: Type.STRING, enum: ['prosecution', 'defense', 'undisputed'] },
-                                citation: { type: Type.STRING }
-                            },
-                            required: ['date', 'description', 'type']
-                        }
-                    },
-                    strategicAssessment: { type: Type.STRING }
-                },
-                required: ['nodes', 'links', 'timeline', 'strategicAssessment']
-            }
-        }
-    });
-    return safeParseJSON<NarrativeMapResult>(response.text) || { nodes: [], links: [], timeline: [], strategicAssessment: 'Mapping failure.' };
-};
-
-export const searchWebWithGemini = async (params: SearchParams, onUpdate: (partialResult: PartialSearchResult) => void): Promise<SearchResult> => {
-  const prompt = buildPrompt(params);
-  try {
-    const stream = await ai.models.generateContentStream({
-      model: 'gemini-3-pro-preview',
-      contents: prompt,
-      config: {
-        tools: [{googleSearch: {}}],
-        thinkingConfig: { thinkingBudget: 32768 },
-      }
-    });
-
-    let summary = "";
-    let sources: Source[] = [];
-    const sourceUris = new Set<string>();
-
-    for await (const chunk of stream) {
-      let chunkText = "";
-      try { chunkText = chunk.text || ""; } catch (e) {}
-      if (chunkText) summary += chunkText;
-      const groundingChunks = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks;
-      if (groundingChunks) {
-        const newSources = groundingChunks.map((c: any) => ({ title: c.web?.title || 'Unknown Source', uri: c.web?.uri || '#' })).filter((s: Source) => s.uri !== '#' && !sourceUris.has(s.uri));
-        newSources.forEach(s => { sourceUris.add(s.uri); sources.push(s); });
-      }
-      onUpdate({ summary, sources: [...sources] });
+        });
+        return safeParseJSON<NarrativeMapResult>(response.text) || { nodes: [], links: [], timeline: [], strategicAssessment: 'Mapping failure.' };
+    } catch (e) {
+        console.error("Narrative mapping engine fault:", e);
+        return { nodes: [], links: [], timeline: [], strategicAssessment: 'Neural link interrupted during mapping.' };
     }
-    
-    onUpdate({ isSummaryStreaming: false, isFollowUpQuestionsLoading: true, isRelatedQueriesLoading: true, isTimelineLoading: true, isAdversarialLoading: true });
-    
-    const [followUpQuestions, relatedQueries, timelineEvents, adversarialStrategy] = await Promise.all([
-        generateFollowUpQuestions(params.query, summary),
-        generateRelatedQueries(params.query),
-        extractTimelineEvents(summary),
-        generateAdversarialStrategy(params.query, summary)
-    ]);
-    
-    onUpdate({ followUpQuestions, relatedQueries, timelineEvents, adversarialStrategy, isFollowUpQuestionsLoading: false, isRelatedQueriesLoading: false, isTimelineLoading: false, isAdversarialLoading: false });
-    
-    return { summary: summary.trim(), sources, followUpQuestions, relatedQueries, timelineEvents, adversarialStrategy, isSummaryStreaming: false, isFollowUpQuestionsLoading: false, isRelatedQueriesLoading: false, isTimelineLoading: false, isIdentifiedJudgesLoading: false };
-  } catch (error) { throw error; }
 };

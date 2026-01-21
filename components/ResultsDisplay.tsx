@@ -1,17 +1,16 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { type SearchResult, type SearchParams } from '../types';
 import FollowUpQuestions from './FollowUpQuestions';
 import BookmarkIcon from './icons/BookmarkIcon';
 import BookmarkFilledIcon from './icons/BookmarkFilledIcon';
-import DownloadIcon from './icons/DownloadIcon';
 import RelatedQueries from './RelatedQueries';
 import GlobeIcon from './icons/GlobeIcon';
 import TimelineChart from './TimelineChart';
 import IdentifiedJudges from './IdentifiedJudges';
 import AdversarialStrategyWidget from './AdversarialStrategyWidget';
-import SpinnerIcon from './icons/SpinnerIcon';
+import StrategicTelemetryWidget from './StrategicTelemetryWidget';
 
 interface ResultsDisplayProps {
   output: SearchResult | null;
@@ -26,161 +25,278 @@ interface ResultsDisplayProps {
 }
 
 const IntelligenceSkeleton = () => (
-  <div className="flex flex-col gap-16 animate-pulse p-12">
+  <div className="flex flex-col gap-8 lg:gap-12 animate-pulse p-4 lg:p-12">
     <div className="space-y-6">
-       <div className="h-4 bg-white/5 w-24"></div>
-       <div className="h-16 bg-white/5 w-3/4"></div>
-       <div className="h-40 bg-white/5 w-full"></div>
+       <div className="h-3 bg-slate-800 w-24 rounded-full"></div>
+       <div className="h-10 bg-slate-800 w-3/4 rounded-lg"></div>
+       <div className="h-64 bg-slate-800/50 w-full rounded-xl"></div>
     </div>
   </div>
 );
 
 export default function ResultsDisplay({ output, searchParams, isLoading, onQuestionClick, onAnalysisClick, onSave, onRemoveSave, isSaved, onJudgeClick }: ResultsDisplayProps): React.ReactNode {
   const dossierRef = useRef<HTMLDivElement>(null);
-  const [isExporting, setIsExporting] = useState(false);
   const dossierId = useMemo(() => Math.random().toString(16).substring(2, 8).toUpperCase(), []);
-
-  const handleExportPDF = async () => {
-    if (!dossierRef.current || !output) return;
-    setIsExporting(true);
-    const element = dossierRef.current;
-    const opt = {
-      margin: 10,
-      filename: `DENVER_INTEL_REPORT_${dossierId}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 3, useCORS: true, backgroundColor: '#050505' },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    try {
-      // @ts-ignore
-      await html2pdf().set(opt).from(element).save();
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   if (!output && !isLoading) return null;
 
   return (
-    <div className="flex flex-col gap-12 pb-24 entry-animation">
+    <div className="flex flex-col gap-6 lg:gap-10 pb-12 lg:pb-24 entry-animation">
       {isLoading && (!output || !output.summary) ? (
         <IntelligenceSkeleton />
       ) : output ? (
-        <div className="flex flex-col gap-12">
-          {/* Dossier Container */}
-          <div ref={dossierRef} className="flex flex-col gap-12 bg-black border border-white/5 p-12 shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col gap-6 lg:gap-10">
+          
+          {/* Main Intelligence Dossier Container */}
+          <div ref={dossierRef} className="flex flex-col gap-8 lg:gap-12 bg-slate-950 border border-slate-800 p-6 lg:p-16 shadow-2xl relative overflow-hidden rounded-2xl transition-colors duration-300 mx-1 lg:mx-0">
             
-            {/* Dossier Metadata Header */}
-            <div className="flex justify-between items-start border-b border-white/10 pb-10 mb-6">
-              <div className="flex flex-col gap-2">
-                <span className="etched-label text-white/60">Intelligence_Dossier_Stream</span>
-                <span className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
-                  Sector_Analysis: <span className="text-white/40">{searchParams?.query.substring(0, 30)}...</span>
-                </span>
+            {/* 1. PRINT-ONLY COVER PAGE */}
+            <div className="hidden pdf-only flex flex-col min-h-[280mm] justify-between border-b-[12px] border-blue-900 pb-20 mb-20 page-break-after">
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col gap-1">
+                  <span className="text-6xl font-black italic tracking-tighter text-blue-900">DENVER_PILOT</span>
+                  <div className="h-2 w-32 bg-blue-900 mt-2"></div>
+                  <span className="text-[12px] font-black text-slate-500 uppercase tracking-[0.6em] mt-4">Legal Strategy Intelligence</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Dossier Auth Token</div>
+                  <span className="text-md font-mono font-black px-6 py-3 bg-slate-50 border-2 border-slate-200"># {dossierId}</span>
+                </div>
               </div>
-              <div className="text-right flex flex-col gap-1">
-                <span className="etched-label text-white/40">NODE: {dossierId}</span>
-                <span className="etched-label text-white/40">TIMESTAMP: {new Date().toISOString()}</span>
+
+              <div className="flex flex-col gap-10 py-24">
+                <span className="text-sm font-black text-blue-700 uppercase tracking-[0.8em]">Privileged & Confidential Strategic Briefing</span>
+                <h1 className="text-8xl font-black uppercase tracking-tighter leading-none text-slate-900">
+                  Judicial<br/>Analysis<br/>Dossier
+                </h1>
+                <p className="text-2xl font-light text-slate-500 max-w-2xl leading-relaxed italic border-l-[6px] border-blue-100 pl-10 mt-6">
+                  Expert-level synthesis of Denver jurisdiction records, predictive adversarial modeling, and chronological procedural analysis for courtroom readiness.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 p-12 border-2 border-slate-100 mb-12">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-8 border-b pb-4">Dossier Index</h3>
+                <div className="flex flex-col gap-6 text-slate-800">
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="font-bold">01. Executive Intelligence Summary</span>
+                    <span className="font-mono text-xs">Section_Alpha</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="font-bold">02. Strategic Case Telemetry</span>
+                    <span className="font-mono text-xs">Section_Beta</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="font-bold">03. Adversarial Maneuver Matrix</span>
+                    <span className="font-mono text-xs">Section_Gamma</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="font-bold">04. Judicial Intel & Sources</span>
+                    <span className="font-mono text-xs">Section_Delta</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-20 py-16 border-t-4 border-slate-900">
+                <div className="flex flex-col gap-6">
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Query Objective</span>
+                  <span className="text-3xl font-bold leading-tight text-slate-900 break-words">{searchParams?.query}</span>
+                </div>
+                <div className="flex flex-col gap-6">
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Deployment Parameters</span>
+                  <div className="flex flex-col gap-3 text-sm font-mono text-slate-600">
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                      <span>SYNC_TIMESTAMP</span>
+                      <span className="font-bold">{new Date().toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                      <span>SECTOR</span>
+                      <span className="font-bold">DENVER_2ND_DIST</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                      <span>AUTH_LEVEL</span>
+                      <span className="font-bold text-blue-700">LVL_04_CLEARANCE</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-900 text-white p-10 flex justify-between items-center">
+                 <span className="text-[10px] font-black uppercase tracking-[0.5em]">Attorney Work Product</span>
+                 <span className="text-[10px] font-black uppercase tracking-[0.5em]">Distribution Restricted</span>
               </div>
             </div>
 
-            {/* INTEL_01: Operational Briefing */}
-            <div className="relative group">
-              <span className="section-index">INTEL_01</span>
-              <div className="max-w-5xl">
-                <div className="prose prose-invert prose-2xl max-w-none text-white leading-relaxed font-light
-                  prose-h1:text-5xl prose-h1:font-black prose-h1:italic prose-h1:mb-12 prose-h1:tracking-tighter
-                  prose-h2:text-[10px] prose-h2:text-white/40 prose-h2:uppercase prose-h2:tracking-[0.8em] prose-h2:border-b prose-h2:border-white/5 prose-h2:pb-6 prose-h2:mt-20 prose-h2:font-black
-                  prose-p:mb-8 prose-p:text-2xl prose-p:font-light prose-p:leading-normal
-                  prose-strong:text-white prose-strong:font-black prose-strong:italic
-                  prose-li:text-white/80 prose-li:mb-4 prose-li:text-xl">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{output.summary}</ReactMarkdown>
-                  {output.isSummaryStreaming && <span className="inline-block w-2 h-8 bg-white animate-pulse align-middle ml-2"></span>}
+            {/* 2. REPORT HEADER */}
+            <div className="flex flex-col md:flex-row justify-between items-start border-b border-slate-800 pb-8 lg:pb-12 mb-4 gap-6 page-break-avoid">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse no-print"></span>
+                  <span className="text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] lg:tracking-[0.4em] section-index-label">Authenticated_Stream_Dossier</span>
+                </div>
+                <h2 className="text-2xl lg:text-5xl font-black text-white italic tracking-tighter uppercase leading-none">
+                  Strategic Briefing: <span className="text-blue-500/80">{dossierId}</span>
+                </h2>
+                <p className="text-[10px] lg:text-xs text-slate-400 font-medium tracking-wide max-w-xl">
+                  Focus Objective: {searchParams?.query.substring(0, 100)}...
+                </p>
+              </div>
+              <div className="flex items-center gap-4 no-print w-full md:w-auto justify-between md:justify-start">
+                <button 
+                  onClick={() => isSaved ? onRemoveSave(searchParams!) : onSave(searchParams!, output)} 
+                  className={`p-3 lg:p-4 rounded-xl border transition-all active:scale-95 ${isSaved ? 'bg-blue-600 text-white border-blue-500 shadow-xl shadow-blue-500/30' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white hover:bg-slate-700'}`}
+                  title={isSaved ? "Remove Bookmark" : "Save Strategic Briefing"}
+                >
+                  {isSaved ? <BookmarkFilledIcon className="w-5 h-5 lg:w-6 lg:h-6" /> : <BookmarkIcon className="w-5 h-5 lg:w-6 lg:h-6" />}
+                </button>
+                <div className="text-right flex flex-col gap-0.5 font-mono text-[8px] lg:text-[9px] text-slate-600 section-index-label">
+                  <span className="uppercase">Origin: NODE_0X42_DNVR</span>
+                  <span className="uppercase">Sync: {new Date().toLocaleString()}</span>
+                  <span className="uppercase text-blue-500/60 font-black">PRIVILEGED WORK PRODUCT</span>
                 </div>
               </div>
             </div>
 
-            {/* INTEL_02: Adversarial Mapping */}
-            <div className="relative mt-12">
-              <span className="section-index">INTEL_02</span>
+            {/* SECTION_01: Executive Intelligence Summary */}
+            <div className="relative">
+              <div className="absolute -left-12 top-0 text-[10px] font-black text-blue-500/20 rotate-180 [writing-mode:vertical-lr] hidden md:block section-index-label">
+                SECTION_01_SUMMARY
+              </div>
+              <div className="max-w-4xl mx-auto">
+                <div className="prose prose-invert prose-lg lg:prose-2xl max-w-none text-slate-200 leading-relaxed font-light
+                  prose-h1:text-2xl lg:prose-h1:text-4xl prose-h1:font-black prose-h1:italic prose-h1:mb-6 lg:prose-h1:mb-10 prose-h1:tracking-tighter prose-h1:text-white prose-h1:border-b prose-h1:border-slate-800 prose-h1:pb-4
+                  prose-h2:text-[10px] lg:prose-h2:text-[12px] prose-h2:text-blue-400/80 prose-h2:uppercase prose-h2:tracking-[0.4em] lg:prose-h2:tracking-[0.6em] prose-h2:border-b prose-h2:border-slate-800/50 prose-h2:pb-3 lg:prose-h2:pb-4 prose-h2:mt-10 lg:prose-h2:mt-16 prose-h2:font-black
+                  prose-p:mb-6 lg:prose-p:mb-8 prose-p:text-base lg:prose-p:text-xl prose-p:font-light prose-p:leading-relaxed
+                  prose-strong:text-white prose-strong:font-black prose-strong:italic
+                  prose-li:text-slate-300 prose-li:mb-4 lg:prose-li:mb-5 prose-li:text-sm lg:prose-li:text-lg">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{output.summary}</ReactMarkdown>
+                  {output.isSummaryStreaming && <span className="inline-block w-2 h-4 lg:h-6 bg-blue-500 animate-pulse align-middle ml-2 no-print"></span>}
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION_02: Strategic Case Telemetry */}
+            <div className="relative mt-4 lg:mt-12 page-break-avoid">
+              <div className="absolute -left-12 top-0 text-[10px] font-black text-indigo-500/20 rotate-180 [writing-mode:vertical-lr] hidden md:block section-index-label">
+                SECTION_02_TELEMETRY
+              </div>
+              <StrategicTelemetryWidget telemetry={output.telemetry} isLoading={output.isTelemetryLoading} />
+            </div>
+
+            {/* SECTION_03: Adversarial Maneuver Matrix */}
+            <div className="relative mt-4 lg:mt-12 page-break-avoid">
+              <div className="absolute -left-12 top-0 text-[10px] font-black text-red-500/20 rotate-180 [writing-mode:vertical-lr] hidden md:block section-index-label">
+                SECTION_03_ADVERSARIAL
+              </div>
               <AdversarialStrategyWidget strategy={output.adversarialStrategy} isLoading={output.isAdversarialLoading} />
             </div>
 
-            {/* INTEL_03: Bench Analysis & Sources */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 mt-12">
+            {/* SECTION_04: Personnel & Sources */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-10 mt-4 lg:mt-12">
               {output.identifiedJudges && output.identifiedJudges.length > 0 && (
-                <div className="relative">
-                  <span className="section-index">INTEL_03A</span>
+                <div className="relative page-break-avoid">
+                   <div className="absolute -left-12 top-0 text-[10px] font-black text-slate-500/20 rotate-180 [writing-mode:vertical-lr] hidden md:block section-index-label">
+                    SECTION_04A_JUDICIAL
+                  </div>
                   <IdentifiedJudges judges={output.identifiedJudges} isLoading={output.isIdentifiedJudgesLoading} onJudgeClick={onJudgeClick} />
                 </div>
               )}
               
-              <div className="bg-white/5 border border-white/10 p-12 relative">
-                <span className="section-index">INTEL_03B</span>
-                <div className="flex items-center gap-4 mb-10 border-b border-white/10 pb-6">
-                  <GlobeIcon className="w-5 h-5 text-white/20" />
-                  <h4 className="etched-label">Source_Nexus_Logs</h4>
+              <div className="bg-slate-900/40 border border-slate-800 p-6 lg:p-10 rounded-xl relative group page-break-avoid">
+                <div className="absolute -left-12 top-0 text-[10px] font-black text-slate-500/20 rotate-180 [writing-mode:vertical-lr] hidden md:block section-index-label">
+                  SECTION_04B_SOURCES
                 </div>
-                <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4 mb-6 lg:mb-8 border-b border-slate-800 pb-4 lg:pb-5">
+                  <GlobeIcon className="w-4 h-4 lg:w-5 lg:h-5 text-blue-500/60" />
+                  <h4 className="text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-widest section-index-label">Source_Dossier_Nodes</h4>
+                </div>
+                <div className="flex flex-col gap-3">
                   {output.sources.slice(0, 8).map((s, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 bg-black/40 border border-white/5 hover:border-white/20 transition-all group">
-                      <div className="flex items-center gap-6 truncate">
-                        <span className="text-white/10 font-mono text-[9px]">0{i}</span>
-                        <span className="truncate text-base font-bold text-white/40 group-hover:text-white transition-colors uppercase tracking-widest italic">{s.title}</span>
+                    <a 
+                      key={i} 
+                      href={s.uri} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="flex items-center justify-between p-3 lg:p-4 bg-slate-950/50 border border-slate-800 hover:border-blue-500/30 hover:bg-slate-800/30 transition-all group/src"
+                    >
+                      <div className="flex items-center gap-3 lg:gap-4 truncate">
+                        <span className="text-[8px] lg:text-[9px] font-mono text-slate-600 section-index-label">REF_{i}</span>
+                        <span className="truncate text-xs lg:text-sm font-semibold text-slate-400 group-hover/src:text-white transition-colors">{s.title}</span>
                       </div>
-                      <a href={s.uri} target="_blank" rel="noreferrer" className="etched-label text-[8px] opacity-10 group-hover:opacity-100 transition-opacity">Launch_Link</a>
-                    </div>
+                      <span className="text-[8px] font-black text-blue-500 opacity-0 group-hover/src:opacity-100 transition-all uppercase tracking-tighter no-print">Open</span>
+                    </a>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* INTEL_04: Temporal Vector */}
+            {/* SECTION_05: Temporal Evidence Mapping */}
             {output.timelineEvents && output.timelineEvents.length > 0 && (
-              <div className="relative mt-12">
-                <span className="section-index">INTEL_04</span>
-                <div className="border-t border-white/10 pt-16">
+              <div className="relative mt-4 lg:mt-12">
+                <div className="absolute -left-12 top-0 text-[10px] font-black text-slate-500/20 rotate-180 [writing-mode:vertical-lr] hidden md:block section-index-label">
+                  SECTION_05_CHRONOLOGY
+                </div>
+                <div className="border-t border-slate-800 pt-8 lg:pt-16">
                   <TimelineChart events={output.timelineEvents} isLoading={output.isTimelineLoading} />
                 </div>
               </div>
             )}
+
+            {/* SECTION_06: Strategic Next Steps */}
+            <div className="relative mt-4 lg:mt-12 no-print">
+               <div className="absolute -left-12 top-0 text-[10px] font-black text-blue-500/20 rotate-180 [writing-mode:vertical-lr] hidden md:block section-index-label">
+                SECTION_06_STRATEGY
+              </div>
+              <div className="border-t border-slate-800 pt-8 lg:pt-12">
+                <FollowUpQuestions questions={output.followUpQuestions || []} onQuestionClick={onQuestionClick} />
+              </div>
+            </div>
             
-            {/* Dossier Footer Branding */}
-            <div className="mt-20 pt-10 border-t border-white/10 text-center flex flex-col gap-2">
-              <span className="etched-label text-white/10 tracking-[1.5em] font-black">End_Of_Intelligence_Transmission</span>
-              <span className="text-white/5 text-[7px] uppercase font-mono">Precision_Engine_v4 // Denver_DCO_Intel_Sector</span>
+            {/* Dossier Terminal Footer */}
+            <div className="mt-12 lg:mt-20 pt-8 lg:pt-12 border-t border-slate-800/50 text-center flex flex-col gap-3 page-break-avoid">
+              <span className="text-[8px] lg:text-[9px] font-black text-slate-700 uppercase tracking-[0.8em] lg:tracking-[1.4em] section-index-label">EOT // TRANSMISSION_SECURE</span>
+              <div className="flex flex-wrap justify-center items-center gap-4 lg:gap-8 opacity-20 section-index-label">
+                <span className="text-[7px] lg:text-[8px] font-mono uppercase">System: DNVR_PILOT_v4.2</span>
+                <span className="text-[7px] lg:text-[8px] font-mono uppercase">Key: {dossierId}_RSA</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Secondary Information Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 no-print mx-1 lg:mx-0">
+            <RelatedQueries queries={output.relatedQueries || []} onQueryClick={onQuestionClick} />
+            <div className="bg-slate-900/40 p-6 lg:p-10 rounded-2xl border border-slate-800/60 flex flex-col justify-center items-center text-center gap-4 lg:gap-6">
+               <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
+                  <div className="w-2 h-2 lg:w-3 lg:h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+               </div>
+               <div className="space-y-1 lg:space-y-2">
+                 <span className="text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] lg:tracking-[0.5em]">System Status</span>
+                 <p className="text-[10px] lg:text-xs text-slate-400 italic max-w-sm leading-relaxed px-4">Analysis complete. Cross-verify with local rules.</p>
+               </div>
             </div>
           </div>
 
-          {/* Dossier Controls - Outside the print container */}
-          <div className="flex justify-between items-center bg-white/5 p-6 border border-white/10">
-            <div className="flex gap-4">
-              <FollowUpQuestions questions={output.followUpQuestions || []} onQuestionClick={onQuestionClick} />
-            </div>
-            <div className="flex gap-4">
-              <button 
-                onClick={handleExportPDF}
-                disabled={isExporting}
-                className="flex items-center gap-4 px-8 py-4 bg-white text-black font-black hover:bg-[#efefef] transition-all disabled:opacity-50"
-              >
-                {isExporting ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <DownloadIcon className="w-5 h-5" />}
-                <span className="etched-label text-black">Export_Dossier</span>
-              </button>
-              <button 
-                onClick={() => isSaved ? onRemoveSave(searchParams!) : onSave(searchParams!, output)} 
-                className={`p-4 border transition-all ${isSaved ? 'bg-white text-black border-white' : 'border-white/20 text-white hover:bg-white/10'}`}
-              >
-                {isSaved ? <BookmarkFilledIcon className="w-6 h-6" /> : <BookmarkIcon className="w-6 h-6" />}
-              </button>
-            </div>
-          </div>
         </div>
       ) : null}
       
       <style>{`
-        .prose blockquote { border-left-color: white; border-left-width: 4px; font-style: italic; color: rgba(255,255,255,0.7); padding-left: 2rem; }
-        .prose a { color: white; text-decoration: underline; text-underline-offset: 4px; font-weight: 800; }
-        .prose a:hover { text-decoration-thickness: 2px; }
+        .prose blockquote { border-left: 3px lg:border-left: 5px solid #3b82f6; background: rgba(59, 130, 246, 0.04); padding: 1rem lg:padding: 1.5rem 2rem; font-style: italic; color: #94a3b8; border-radius: 0 0.5rem 0.5rem 0; }
+        .prose strong { color: #fff; font-weight: 800; font-style: normal; }
+        .prose h1, .prose h2 { font-family: 'Inter', sans-serif; }
+        
+        .page-break-avoid { page-break-inside: avoid; break-inside: avoid; }
+        .page-break-after { page-break-after: always; break-after: always; }
+        
+        @media screen {
+          .pdf-only { display: none; }
+        }
+        
+        .pdf-export-mode .pdf-only {
+          display: flex !important;
+        }
+
+        .pdf-export-mode .no-print {
+          display: none !important;
+        }
       `}</style>
     </div>
   );
